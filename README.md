@@ -1,71 +1,66 @@
 # StreamUP Hotkey Display for OBS Studio
 
-Shows what keyboard shortcuts you're pressing in real time. There's a dock in OBS that displays the current key combination, and you can push it to a text source so your viewers can see it on screen too. Handy for tutorials, educational streams, or any time you want people to follow along with what you're doing.
+**StreamUP Hotkey Display** is a professional-grade OBS Studio plugin that visualizes your keyboard and mouse inputs in real-time. Designed for developers, educators, and high-performance gamers, it provides a sleek, high-performance overlay that shows exactly what you're pressing—now including real-time mouse coordinates and scroll intensity.
 
-## How It Works
+## 🚀 What's New: The WebSocket Revolution
 
-The plugin hooks into your keyboard and mouse inputs and displays whatever combination you're pressing. Mouse clicks and scrolling only get picked up when you're holding a modifier key, so it's not logging every random click.
+The plugin has evolved from a simple text-source display to a robust WebSocket-driven architecture. By leveraging a dedicated **Browser Source** (CEF), you can now enjoy premium aesthetics, glassmorphism designs, and smooth animations that were previously impossible.
 
-Works on Windows, macOS and Linux (X11 required, Wayland will warn you it's not supported).
+## 🛠 Features
 
-## Features
+### 💎 Premium Browser Overlay
+- **Modern Design**: High-end glassmorphims display with backdrop-blur and CSS-driven animations.
+- **Zero-Config Auto-Auth**: The plugin automatically detects your OBS WebSocket credentials and injects them into the overlay URL. No manual setup required.
+- **High Performance**: Uses a private "Exclusive Subscription" mode to filter out background OBS noise, ensuring zero lag even during intense sessions.
 
-### Dock
-- Live display of the current key combination
-- Scrollable history of recent key presses (configurable size)
-- Start and stop toggle right in the dock
-- Auto-clears the display after a set duration
+### 🖱 Elite Mouse Tracking
+- **Real-time Position**: High-frequency tracking of your (X, Y) cursor coordinates (throttled to 50Hz for efficiency).
+- **Scroll Speed & Direction**: Dynamically calculates and visualizes scroll velocity.
+- **Selective Output**: Toggle exactly what data is sent to the overlay—capture everything or just specific actions.
 
-### Text Source Output
-- Send the current hotkey to any text source in OBS (GDI+, FreeType 2, or Pango)
-- Configurable display duration so it disappears after a set time
-- Add a prefix and suffix around the key text
-- Auto-shows the text source when a key is pressed
+### ⌨️ Comprehensive Key Capture
+- **Complex Combinations**: Native support for all major modifiers (Ctrl, Alt, Shift, Cmd/Super).
+- **Single Key Modes**: Optional capture for numpads, letters, symbols, and punctuation.
+- **Custom Whitelisting**: Manually specify exactly which keys should be captured standalone.
 
-### Key Capture Options
-- Modifier combos captured by default (Ctrl, Alt, Shift, Super/Cmd + key)
-- Optional single key capture for numpad, number row, letters, punctuation
-- Manual whitelist for specific keys you want captured individually
-- Customisable key separator (change " + " to " - " or whatever)
+### 🖥 Integrated OBS Dock
+- **Live Preview**: Monitor your current combinations and history right inside the OBS UI.
+- **One-Click Control**: Start/Stop monitoring and access settings directly from the dock.
+- **Configurable History**: Track up to 50 recent combinations with adjustable auto-clear timers.
 
-### OBS Hotkey
-Bind a hotkey to toggle the display on and off without opening the dock.
+## 🔧 Technical Details
 
-### WebSocket API
-Registered under the `streamup-hotkey-display` vendor:
+### Plugin API (WebSocket v5)
+Registered under the `streamup-hotkey-display` vendor. 
 
-| Request | What it does |
+Events emitted: `input_event` (Structured JSON containing key combos, mouse position, actions, and scroll metadata).
+
+| Request | Description |
 |---------|-------------|
-| `get_status` | Returns whether capture is active and the last combination |
-| `enable` | Turns on keyboard capture |
-| `disable` | Turns off keyboard capture |
-| `get_last_combination` | Returns the most recent key combination |
+| `get_status` | Returns capture status and last known combination. |
+| `enable` / `disable` | Toggles the global input hooks. |
+| `get_last_combination` | Retrieves the most recent combination. |
 
-Also emits `key_pressed` events so external tools like Stream Deck or Streamer.Bot can react to input in real time.
+## 🏗 Build & Installation
 
-## Build
+### Requirements
+- **Windows**: Windows 10/11
+- **macOS**: 10.15+ (Requires Accessibility Permissions)
+- **Linux**: X11 environment (Wayland supported via XWayland/XCB)
 
-**In-tree build:**
-1. Build OBS Studio: https://obsproject.com/wiki/Install-Instructions
-2. Check out this repository to `frontend/plugins/obs-streamup-hotkey-display`
-3. Add `add_subdirectory(obs-streamup-hotkey-display)` to `frontend/plugins/CMakeLists.txt`
-4. Rebuild OBS Studio
+### Compiling
+1. Clone this repository to `frontend/plugins/obs-streamup-hotkey-display`.
+2. Add `add_subdirectory(obs-streamup-hotkey-display)` to your `frontend/plugins/CMakeLists.txt`.
+3. Rebuild OBS Studio or build out-of-tree using provided CMake presets.
 
-**Stand-alone build (Linux only):**
-1. Make sure you have the OBS development packages installed
-2. Check out this repository and run `cmake -S . -B build -DBUILD_OUT_OF_TREE=On && cmake --build build`
+## 🤝 Support & Community
 
-## Guide
-
-For the full walkthrough, check out the [guide on Notion](https://streamup.notion.site/StreamUP-Hotkey-Display-53b513b427e8425eb584bdc408117daa).
-
-Got feedback or requests? Drop them in the [StreamUP Discord](https://discord.com/invite/RnDKRaVCEu).
-
-## Support
-
-Built and maintained by Andi. If this has been useful, consider supporting to keep it going.
+Built and maintained by **Andi**. If this plugin helps your workflow, consider supporting its continued development.
 
 - [**Memberships**](https://andilippi.co.uk/pages/memberships) - Access all products and exclusive perks
-- [**PayPal**](https://www.paypal.me/andilippi) - Buy me a beer
-- [**Twitch**](https://www.twitch.tv/andilippi) - Come hang out and ask questions
-- [**YouTube**](https://www.youtube.com/andilippi) - Tutorials on OBS and streaming
+- [**PayPal**](https://www.paypal.me/andilippi) - Support the developer
+- [**Twitch**](https://www.twitch.tv/andilippi) - Tutorials and live dev sessions
+- [**YouTube**](https://www.youtube.com/andilippi) - Streaming setup guides
+
+---
+*© 2026 StreamUP. Licensed under the GPL-2.0.*
