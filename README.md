@@ -5,7 +5,12 @@
 ## 🚀 What's New: The WebSocket Revolution
 
 The plugin has evolved from a simple text-source display to a robust WebSocket-driven architecture. By leveraging a dedicated **Browser Source** (CEF), you can now enjoy javascript and css animations driven by the plugin.
+Menu with Mouse Position and Browser Source output
 ![Plugin menu with mouse position and Browser Source](readme/2026-04-15_22-42-47.png)
+
+Browser Source visualizing plugin events. 
+
+https://github.com/user-attachments/assets/aaa99bec-d0df-4b2a-870a-462606dbd466
 
 ## 🛠 Features
 
