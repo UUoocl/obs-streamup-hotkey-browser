@@ -70,6 +70,15 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
   AUTORCC ON
 )
 
+if(APPLE)
+  set_target_properties(${PROJECT_NAME} PROPERTIES
+    XCODE_ATTRIBUTE_FRAMEWORK_SEARCH_PATHS "/Users/jonwood/Github_local_dev/obs-streamup-hotkey-display-main/build_macos/stubs"
+    BUILD_WITH_INSTALL_RPATH TRUE
+    INSTALL_RPATH "@loader_path/../Frameworks;@loader_path/../../../../Frameworks"
+    MACOSX_RPATH TRUE
+  )
+endif()
+
 # Version header
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/version.h.in

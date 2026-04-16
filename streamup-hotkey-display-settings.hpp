@@ -29,6 +29,14 @@ public:
 	QString textSource;
 	int onScreenTime;
 	bool displayInTextSource;
+	bool displayInBrowserSource;
+	QString browserSource;
+
+	// Data toggles
+	bool sendKeyboard;
+	bool sendClicks;
+	bool sendScroll;
+	bool sendPosition;
 
 	// Single key capture settings
 	bool captureNumpad;
@@ -83,9 +91,6 @@ private:
 	QLabel *whitelistLabel;
 	QPlainTextEdit *whitelistTextEdit;
 
-	// Display settings group
-	QGroupBox *displayGroupBox;
-
 	// Display format UI elements
 	QLabel *separatorLabel;
 	QLineEdit *separatorLineEdit;
@@ -94,9 +99,12 @@ private:
 
 	// Logging UI elements
 	SwitchWidget *enableLoggingCheckBox;
+	QPushButton *applyButton;
+	QPushButton *closeButton;
 
 private slots:
 	void applySettings();
 	void onSceneChanged(const QString &sceneName);
 	void onDisplayInTextSourceToggled(bool checked);
+	void onDisplayInBrowserSourceToggled(bool checked);
 };

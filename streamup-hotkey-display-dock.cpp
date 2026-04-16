@@ -2,6 +2,9 @@
 #include "streamup-hotkey-display.hpp"
 #include "streamup-hotkey-display-settings.hpp"
 #include <obs.h>
+#include <obs-frontend-api.h>
+#include <util/config-file.h>
+#include <util/platform.h>
 #include <QIcon>
 #include <QStyle>
 #include <QToolButton>
@@ -289,16 +292,15 @@ void HotkeyDisplayDock::updateBrowserSourceURL()
 
 	obs_data_t *settings = obs_source_get_settings(source);
 
-	// Get WebSocket details (defined in streamup-hotkey-display.cpp)
+	// Get WebSocket details
 	int port = 4455;
 	std::string password = "";
-	extern void GetWebSocketDetails(int &port, std::string &password);
 	GetWebSocketDetails(port, password);
 
 	char *overlayPath = obs_module_file("hotkey-overlay.html");
 	if (overlayPath) {
 		QString url = QString("file:///%1").arg(QString::fromUtf8(overlayPath).replace("\\", "/"));
-		url += QString("?port=%1&pwd=%2").arg(port).arg(QString::fromStdString(password));
+		url += QString("?host=127.0.0.1&port=%1&pwd=%2").arg(port).arg(QString::fromStdString(password));
 
 		obs_data_set_string(settings, "url", url.toUtf8().constData());
 		obs_data_set_bool(settings, "is_local_file", false); // We use URL mode to allow query params
@@ -309,6 +311,30 @@ void HotkeyDisplayDock::updateBrowserSourceURL()
 
 	obs_data_release(settings);
 	obs_source_release(source);
+}
+
+void HotkeyDisplayDock::GetWebSocketDetails(int &port, std::string &password)
+{
+	port = 4455; // Default OBS WebSocket v5 port
+	password = "";
+
+	char *userConfigPath = os_get_config_path_ptr("obs-studio");
+	if (userConfigPath) {
+		std::string jsonPath = std::string(userConfigPath) + "/plugin_config/obs-websocket/config.json";
+		bfree(userConfigPath);
+
+		obs_data_t *data = obs_data_create_from_json_file(jsonPath.c_str());
+		if (data) {
+			if (obs_data_has_user_value(data, "server_port"))
+				port = (int)obs_data_get_int(data, "server_port");
+			
+			const char *pw = obs_data_get_string(data, "server_password");
+			if (pw)
+				password = pw;
+
+			obs_data_release(data);
+		}
+	}
 }
 
 void HotkeyDisplayDock::toggleKeyboardHook()

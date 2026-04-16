@@ -1,15 +1,16 @@
 # StreamUP Hotkey Display for OBS Studio
 
-**StreamUP Hotkey Display** is a professional-grade OBS Studio plugin that visualizes your keyboard and mouse inputs in real-time. Designed for developers, educators, and high-performance gamers, it provides a sleek, high-performance overlay that shows exactly what you're pressing—now including real-time mouse coordinates and scroll intensity.
+**StreamUP Hotkey Display** is an OBS Studio plugin that visualizes your keyboard and mouse inputs in real-time. Designed for developers, educators, and high-performance gamers, it provides a sleek, high-performance overlay that shows exactly what you're pressing including real-time mouse coordinates and scroll intensity.
 
 ## 🚀 What's New: The WebSocket Revolution
 
-The plugin has evolved from a simple text-source display to a robust WebSocket-driven architecture. By leveraging a dedicated **Browser Source** (CEF), you can now enjoy premium aesthetics, glassmorphism designs, and smooth animations that were previously impossible.
+The plugin has evolved from a simple text-source display to a robust WebSocket-driven architecture. By leveraging a dedicated **Browser Source** (CEF), you can now enjoy javascript and css animations driven by the plugin.
+![Plugin menu with mouse position and Browser Source](readme/2026-04-15_22-42-47.png)
 
 ## 🛠 Features
 
 ### 💎 Premium Browser Overlay
-- **Modern Design**: High-end glassmorphims display with backdrop-blur and CSS-driven animations.
+- **Modern Design**: Javascript and CSS-driven animations.
 - **Zero-Config Auto-Auth**: The plugin automatically detects your OBS WebSocket credentials and injects them into the overlay URL. No manual setup required.
 - **High Performance**: Uses a private "Exclusive Subscription" mode to filter out background OBS noise, ensuring zero lag even during intense sessions.
 

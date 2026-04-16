@@ -9,6 +9,7 @@
 #include <QTimer>
 #include <QListWidget>
 #include <obs.h>
+#include <string>
 
 // Default value constants
 namespace StyleConstants {
@@ -29,6 +30,7 @@ public:
 
 	// setLog is Q_INVOKABLE so it can be called via QMetaObject::invokeMethod
 	Q_INVOKABLE void setLog(const QString &log);
+	static void GetWebSocketDetails(int &port, std::string &password);
 
 	// Hook management
 	bool enableHooks();
@@ -77,6 +79,7 @@ private:
 	void setSourceVisibility(bool visible);
 	void stopAllActivities();
 	void addToHistory(const QString &combination);
+	void updateBrowserSourceURL();
 
 	QVBoxLayout *layout;
 	QToolBar *toolbar;

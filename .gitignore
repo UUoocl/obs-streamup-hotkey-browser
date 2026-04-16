@@ -11,3 +11,11 @@
 # ignore generated files
 *.generated.*
 **/.Brewfile.lock.json
+version.h
+
+# Build and SDK artifacts
+/.deps/
+/obs-src/
+/obs-sources.tar.gz
+/obs-sdk/
+/rundir/

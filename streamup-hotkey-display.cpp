@@ -631,7 +631,9 @@ void startMacOSKeyboardHook()
 	// Create event tap for keyboard AND mouse events
 	CGEventMask eventMask = CGEventMaskBit(kCGEventKeyDown) | CGEventMaskBit(kCGEventKeyUp) |
 				CGEventMaskBit(kCGEventLeftMouseDown) | CGEventMaskBit(kCGEventRightMouseDown) |
-				CGEventMaskBit(kCGEventOtherMouseDown) | CGEventMaskBit(kCGEventScrollWheel);
+				CGEventMaskBit(kCGEventOtherMouseDown) | CGEventMaskBit(kCGEventScrollWheel) |
+				CGEventMaskBit(kCGEventMouseMoved) | CGEventMaskBit(kCGEventLeftMouseDragged) |
+				CGEventMaskBit(kCGEventRightMouseDragged) | CGEventMaskBit(kCGEventOtherMouseDragged);
 
 	// Fix #14: Use kCGEventTapOptionListenOnly since the plugin only monitors events
 	eventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionListenOnly,
@@ -996,19 +998,7 @@ void linuxKeyboardHookThreadFunc()
 	blog(LOG_INFO, "[StreamUP Hotkey Display] Linux keyboard hook thread stopped");
 }
 
-void GetWebSocketDetails(int &port, std::string &password)
-{
-	port = 4455; // Default OBS WebSocket v5 port
-	password = "";
 
-	config_t *config = obs_frontend_get_global_config();
-	if (config) {
-		port = (int)config_get_uint(config, "OBSWebSocket", "ServerPort");
-		const char *pw = config_get_string(config, "OBSWebSocket", "ServerPassword");
-		if (pw)
-			password = pw;
-	}
-}
 
 static bool isWaylandSession()
 {
