@@ -375,6 +375,11 @@ void StreamupHotkeyDisplaySettings::LoadSettings(obs_data_t *settings)
 	suffixLineEdit->setText(suffix);
 	QString browserName = QString::fromUtf8(obs_data_get_string(settings, "browserSourceName"));
 	browserSourceNameEdit->setText(browserName);
+	
+	QString targetSource = QString::fromUtf8(obs_data_get_string(settings, "targetBrowserSource"));
+	if (!targetSource.isEmpty()) {
+		existingBrowserSourceComboBox->setCurrentText(targetSource);
+	}
 
 	// Single key capture settings
 	captureNumpad = obs_data_get_bool(settings, "captureNumpad");
@@ -425,6 +430,7 @@ void StreamupHotkeyDisplaySettings::SaveSettings()
 	obs_data_set_bool(settings, "displayInTextSource", displayInTextSourceCheckBox->isChecked());
 	obs_data_set_bool(settings, "displayInBrowserSource", displayInBrowserSourceCheckBox->isChecked());
 	obs_data_set_string(settings, "browserSourceName", browserSourceNameEdit->text().toUtf8().constData());
+	obs_data_set_string(settings, "targetBrowserSource", existingBrowserSourceComboBox->currentText().toUtf8().constData());
 
 	// New settings
 	obs_data_set_string(settings, "prefix", prefixLineEdit->text().toUtf8().constData());
@@ -618,7 +624,7 @@ void StreamupHotkeyDisplaySettings::onAddBrowserSource()
 	char *overlayPath = obs_module_file("hotkey-overlay.html");
 	if (overlayPath) {
 		QString url = QString("file:///%1").arg(QString::fromUtf8(overlayPath).replace("\\", "/"));
-		url += QString("?ip=127.0.0.1&port=%1&pwd=%2").arg(port).arg(QString::fromStdString(password));
+		// WebSocket parameters removed - using direct event emission
 
 		obs_data_set_string(settings, "url", url.toUtf8().constData());
 		obs_data_set_bool(settings, "is_local_file", false);
@@ -669,8 +675,7 @@ void StreamupHotkeyDisplaySettings::PopulateBrowserSourceComboBox()
 void StreamupHotkeyDisplaySettings::onConnectBrowserSource()
 {
 	QString name = existingBrowserSourceComboBox->currentText();
-	
-	// Sanity check for placeholder
+
 	if (name.isEmpty() || name == "No Browser Sources Found") {
 		blog(LOG_WARNING, "[StreamUP Hotkey Display] No valid browser source selected");
 		return;
@@ -685,39 +690,12 @@ void StreamupHotkeyDisplaySettings::onConnectBrowserSource()
 	obs_data_t *settings = obs_source_get_settings(source);
 	if (settings) {
 		const char *url_str = obs_data_get_string(settings, "url");
-		QUrl url(url_str);
-		
-		blog(LOG_INFO, "[StreamUP Hotkey Display] Connecting source '%s'. Old URL: %s", 
+		blog(LOG_INFO, "[StreamUP Hotkey Display] Connecting target source '%s'. URL: %s",
 		     name.toUtf8().constData(), url_str);
 
-		QUrlQuery query(url.query());
-
-		// Get WebSocket details
-		int port = 4455;
-		std::string password = "";
-		if (hotkeyDisplayDock) {
-			hotkeyDisplayDock->GetWebSocketDetails(port, password);
-		}
-
-		// Update query parameters
-		query.removeAllQueryItems("ip");
-		query.removeAllQueryItems("port");
-		query.removeAllQueryItems("pwd");
-		query.addQueryItem("ip", "127.0.0.1");
-		query.addQueryItem("port", QString::number(port));
-		query.addQueryItem("pwd", QString::fromStdString(password));
-
-		url.setQuery(query);
-		
-		// CRITICAL: Disable "is_local_file" so the URL is actually used by the browser source
-		obs_data_set_bool(settings, "is_local_file", false);
-		obs_data_set_string(settings, "url", url.toString().toUtf8().constData());
-		
-		obs_source_update(source, settings);
-		
-		blog(LOG_INFO, "[StreamUP Hotkey Display] New URL: %s", url.toString().toUtf8().constData());
-		blog(LOG_INFO, "[StreamUP Hotkey Display] Successfully updated WebSocket parameters and disabled 'Local File' for source '%s'", 
-		     name.toUtf8().constData());
+		// We no longer need to inject WebSocket parameters.
+		// Just ensure the source is recognized as the target.
+		blog(LOG_INFO, "[StreamUP Hotkey Display] Target source set to '%s'", name.toUtf8().constData());
 
 		obs_data_release(settings);
 	}

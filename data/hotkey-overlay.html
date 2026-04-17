@@ -198,49 +198,37 @@
     <div id="scroll-speed">Scroll: 0.0</div>
     <div id="history"></div>
 
-    <script src="./obs-websocket.js"></script>
     <script>
         const historyContainer = document.getElementById('history');
         const cursorGlow = document.getElementById('cursor-glow');
         const scrollLabel = document.getElementById('scroll-speed');
 
         const params = new URLSearchParams(window.location.search);
-        const ip = params.get('ip') || '127.0.0.1';
-        const port = params.get('port') || '4455';
-        const password = params.get('pwd') || '';
         const showMonitor = params.get('monitor') !== '0';
 
         if (showMonitor) {
             document.getElementById('monitor-panel').style.display = 'block';
         }
 
-        const obs = new OBSWebSocket();
         let clearScrollTimer;
 
-        async function connect() {
-            try {
-                // Use the IP parameter from the URL
-                // Subscribe only to Vendor events (512) to reduce traffic
-                await obs.connect(`ws://${ip}:${port}`, password, {
-                    eventSubscriptions: 512
-                });
-                console.log(`Connected to OBS WebSocket at ${ip}:${port}`);
-            } catch (error) {
-                console.error("Connection failed:", error);
-                setTimeout(connect, 2000);
+        // Handle Direct Events from our C++ plugin
+        window.addEventListener('streamup_hotkey_input', (event) => {
+            console.log('Direct event received:', event.detail);
+            
+            // OBS emits events with a JSON string in the detail property
+            let data = event.detail;
+            if (typeof data === 'string') {
+                try {
+                    data = JSON.parse(data);
+                } catch (e) {
+                    console.error('Failed to parse event data:', e);
+                    return;
+                }
             }
-        }
-
-        // Listen for internal OBS events
-        obs.on('ConnectionClosed', () => {
-            console.log("WebSocket closed, retrying...");
-            setTimeout(connect, 2000);
-        });
-
-        // Handle Vendor Events from our C++ plugin
-        obs.on('VendorEvent', (event) => {
-            if (event.vendorName === 'streamup-hotkey-display') {
-                processInput(event.eventData);
+            
+            if (data) {
+                processInput(data);
             }
         });
 
@@ -374,7 +362,8 @@
             }, 500);
         }
 
-        connect();
+        // Initialization complete
+        console.log('StreamUP Hotkey Overlay ready for direct events');
     </script>
 </body>
 

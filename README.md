@@ -2,22 +2,23 @@
 
 **StreamUP Hotkey Display** is an OBS Studio plugin that visualizes your keyboard and mouse inputs in real-time. Designed for developers, educators, and high-performance gamers, it provides a sleek, high-performance overlay that shows exactly what you're pressing including real-time mouse coordinates and scroll intensity.
 
-## 🚀 What's New: The WebSocket Revolution
+## 🚀 The Internal Event Engine
 
-The plugin has evolved from a simple text-source display to a robust WebSocket-driven architecture. By leveraging a dedicated **Browser Source** (CEF), you can now enjoy javascript and css animations driven by the plugin.
-Menu with Mouse Position and Browser Source output
-![Plugin menu with mouse position and Browser Source](readme/2026-04-15_22-42-47.png)
+The plugin has evolved from a simple text-source display to a high-performance **Internal Event Engine**. By leveraging the native **Browser Source** (CEF) API, events are now emitted directly into the browser's JavaScript environment.
 
-Browser Source visualizing plugin events. 
+> [!NOTE]
+> The original WebSocket-based architecture is still available in the [**websocket**](https://github.com/Andilippi/obs-streamup-hotkey-display/tree/websocket) branch for users who require remote network distribution.
 
-https://github.com/user-attachments/assets/aaa99bec-d0df-4b2a-870a-462606dbd466
-
-## 🛠 Features
+| Feature | Direct Events (New) | WebSocket (Legacy) |
+|---------|---------------------|-------------------|
+| **Latency** | 0ms (Internal) | 5-20ms (Network) |
+| **Config** | None Required | IP/Port/Auth |
+| **Reliability** | Native / Built-in | TCP / Socket-based |
 
 ### 💎 Premium Browser Overlay
-- **Modern Design**: Javascript and CSS-driven animations.
-- **Zero-Config Auto-Auth**: The plugin automatically detects your OBS WebSocket credentials and injects them into the overlay URL. No manual setup required.
-- **High Performance**: Uses a private "Exclusive Subscription" mode to filter out background OBS noise, ensuring zero lag even during intense sessions.
+- **Modern Design**: JavaScript and CSS-driven animations.
+- **True Zero-Config**: The plugin automatically targets your browser source. No manual IP or password setup is required.
+- **Ultra Performance**: Input events are frame-perfect relative to OBS processing, bypassing the network stack entirely.
 
 ### 🖱 Elite Mouse Tracking
 - **Real-time Position**: High-frequency tracking of your (X, Y) cursor coordinates (throttled to 50Hz for efficiency).
@@ -36,10 +37,14 @@ https://github.com/user-attachments/assets/aaa99bec-d0df-4b2a-870a-462606dbd466
 
 ## 🔧 Technical Details
 
-### Plugin API (WebSocket v5)
-Registered under the `streamup-hotkey-display` vendor. 
+### Internal Browser API
+The plugin emits events directly to the target browser source using the `emit_event` procedure.
 
-Events emitted: `input_event` (Structured JSON containing key combos, mouse position, actions, and scroll metadata).
+**Event Name**: `streamup_hotkey_input`
+**Payload**: Structured JSON containing key combinations, mouse position, actions, and scroll metadata.
+
+### WebSocket API (Management)
+Registered under the `streamup-hotkey-display` vendor for remote plugin management.
 
 | Request | Description |
 |---------|-------------|

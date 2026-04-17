@@ -206,6 +206,10 @@ static bool sendPosition = false;
 static std::atomic<uint64_t> moveThrottleMs{20}; // Default 50Hz (20ms)
 static uint64_t mouseFps = 50;
 
+// Target source for direct event emission
+static std::string targetBrowserSource = "";
+bool displayInBrowserSource = true;
+
 // Key name lookup tables for performance
 #ifdef _WIN32
 static const std::unordered_map<int, const char *> keyNameMap = {
@@ -448,9 +452,22 @@ static bool shouldLogCombinationLocked()
 	return true;
 }
 
-void emitWebSocketEvent(const std::string &keyCombination, const std::string &mouseAction = "")
+void emitBrowserEvent(const std::string &keyCombination, const std::string &mouseAction = "")
 {
-	if (!websocket_vendor) {
+	if (!displayInBrowserSource || targetBrowserSource.empty() || targetBrowserSource == "No Browser Sources Found") {
+		return;
+	}
+
+	obs_source_t *source = obs_get_source_by_name(targetBrowserSource.c_str());
+	if (!source) {
+		blog(LOG_INFO, "[StreamUP Hotkey Display] Direct emission failed: Source '%s' not found", targetBrowserSource.c_str());
+		return;
+	}
+
+	proc_handler_t *ph = obs_source_get_proc_handler(source);
+	if (!ph) {
+		blog(LOG_INFO, "[StreamUP Hotkey Display] Direct emission failed: Could not get proc_handler for '%s'", targetBrowserSource.c_str());
+		obs_source_release(source);
 		return;
 	}
 
@@ -494,8 +511,23 @@ void emitWebSocketEvent(const std::string &keyCombination, const std::string &mo
 	obs_data_set_obj(event_data, "mouse", mouse_data);
 	obs_data_release(mouse_data);
 
-	obs_websocket_vendor_emit_event(websocket_vendor, "input_event", event_data);
+	const char *json_data = obs_data_get_json(event_data);
+	
+	calldata_t cd;
+	calldata_init(&cd);
+	calldata_set_string(&cd, "eventName", "streamup_hotkey_input");
+	calldata_set_string(&cd, "jsonString", json_data);
+	bool success = proc_handler_call(ph, "javascript_event", &cd);
+	calldata_free(&cd);
+
+	if (success) {
+		// Procedure call succeeded
+	} else {
+		blog(LOG_INFO, "[StreamUP Hotkey Display] Direct emission failed: 'javascript_event' proc not triggered on '%s'", targetBrowserSource.c_str());
+	}
+
 	obs_data_release(event_data);
+	obs_source_release(source);
 }
 
 #ifdef _WIN32
@@ -537,7 +569,7 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 					QMetaObject::invokeMethod(hotkeyDisplayDock, "setLog", Qt::QueuedConnection,
 						Q_ARG(QString, QString::fromStdString(keyCombination)));
 				}
-				emitWebSocketEvent(keyCombination);
+				emitBrowserEvent(keyCombination);
 			}
 		} else if (wParam == WM_KEYUP || wParam == WM_SYSKEYUP) {
 			std::lock_guard<std::mutex> lock(keyStateMutex);
@@ -565,7 +597,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 			uint64_t now = os_gettime_ns() / 1000000;
 			if (now - lastMoveTimestamp.load() > moveThrottleMs) {
 				lastMoveTimestamp.store(now);
-				emitWebSocketEvent("", "Move");
+				emitBrowserEvent("", "Move");
 			}
 		}
 
@@ -644,7 +676,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 					QMetaObject::invokeMethod(hotkeyDisplayDock, "setLog", Qt::QueuedConnection,
 						Q_ARG(QString, QString::fromStdString(fullLabel)));
 				}
-				emitWebSocketEvent(keyCombination, mouseAction);
+				emitBrowserEvent(keyCombination, mouseAction);
 			}
 		}
 	}
@@ -748,7 +780,7 @@ CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef e
 			uint64_t now = os_gettime_ns() / 1000000;
 			if (now - lastMoveTimestamp.load() > moveThrottleMs) {
 				lastMoveTimestamp.store(now);
-				emitWebSocketEvent("", "Move");
+				emitBrowserEvent("", "Move");
 			}
 		}
 	}
@@ -799,7 +831,7 @@ CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef e
 				QMetaObject::invokeMethod(hotkeyDisplayDock, "setLog", Qt::QueuedConnection,
 					Q_ARG(QString, QString::fromStdString(keyCombination)));
 			}
-			emitWebSocketEvent(keyCombination);
+			emitBrowserEvent(keyCombination);
 		}
 	} else if (type == kCGEventFlagsChanged) {
 		CGKeyCode keyCode = (CGKeyCode)CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
@@ -888,7 +920,7 @@ CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef e
 					QMetaObject::invokeMethod(hotkeyDisplayDock, "setLog", Qt::QueuedConnection,
 						Q_ARG(QString, QString::fromStdString(fullLabel)));
 				}
-				emitWebSocketEvent(keyCombination, mouseAction);
+				emitBrowserEvent(keyCombination, mouseAction);
 			}
 		}
 	}
@@ -947,7 +979,7 @@ void linuxKeyboardHookThreadFunc()
 					uint64_t now = os_gettime_ns() / 1000000;
 					if (now - lastMoveTimestamp.load() > moveThrottleMs) {
 						lastMoveTimestamp.store(now);
-						emitWebSocketEvent("", "Move");
+						emitBrowserEvent("", "Move");
 					}
 				}
 			} else if (event.type == X11_KeyPress) {
@@ -985,7 +1017,7 @@ void linuxKeyboardHookThreadFunc()
 						QMetaObject::invokeMethod(hotkeyDisplayDock, "setLog", Qt::QueuedConnection,
 							Q_ARG(QString, QString::fromStdString(keyCombination)));
 					}
-					emitWebSocketEvent(keyCombination);
+					emitBrowserEvent(keyCombination);
 				}
 			} else if (event.type == X11_KeyRelease) {
 				KeySym keysym = XLookupKeysym(&event.xkey, 0);
@@ -1068,7 +1100,7 @@ void linuxKeyboardHookThreadFunc()
 							QMetaObject::invokeMethod(hotkeyDisplayDock, "setLog", Qt::QueuedConnection,
 								Q_ARG(QString, QString::fromStdString(fullLabel)));
 						}
-						emitWebSocketEvent(keyCombination, mouseAction);
+						emitBrowserEvent(keyCombination, mouseAction);
 					}
 				}
 			}
@@ -1160,6 +1192,7 @@ static void applySettingsDefaults(obs_data_t *data)
 	obs_data_set_default_bool(data, "sendPosition", false);
 	obs_data_set_default_string(data, "prefix", "");
 	obs_data_set_default_string(data, "suffix", "");
+	obs_data_set_default_string(data, "targetBrowserSource", "");
 	obs_data_set_default_bool(data, "hookEnabled", false);
 	obs_data_set_default_bool(data, "captureNumpad", false);
 	obs_data_set_default_bool(data, "captureNumbers", false);
@@ -1341,6 +1374,8 @@ void loadSingleKeyCaptureSettings(obs_data_t *settings)
 	sendClicks = obs_data_get_bool(settings, "sendClicks");
 	sendScroll = obs_data_get_bool(settings, "sendScroll");
 	sendPosition = obs_data_get_bool(settings, "sendPosition");
+	displayInBrowserSource = obs_data_get_bool(settings, "displayInBrowserSource");
+	targetBrowserSource = obs_data_get_string(settings, "targetBrowserSource");
 
 	QString whitelist = QString::fromUtf8(obs_data_get_string(settings, "whitelistedKeys"));
 	parseWhitelistKeys(whitelist);
