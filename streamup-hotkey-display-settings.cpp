@@ -1,6 +1,8 @@
 #include "streamup-hotkey-display-settings.hpp"
 #include "streamup-hotkey-display.hpp"
 #include <obs-module.h>
+#include <QUrl>
+#include <QUrlQuery>
 
 StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *dock, QWidget *parent)
 	: QDialog(parent),
@@ -33,14 +35,20 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	  maxHistoryLabel(new QLabel(obs_module_text("Settings.Label.MaxHistory"), this)),
 	  maxHistorySpinBox(new QSpinBox(this)),
 	  enableLoggingCheckBox(new SwitchWidget(obs_module_text("Settings.Checkbox.EnableLogging"), this)),
-	  browserSourceComboBox(new QComboBox(this)),
+	  browserSourceNameEdit(new QLineEdit(this)),
+	  addBrowserSourceBtn(CreateStyledButton(obs_module_text("Settings.Button.AddBrowserSource"), "primary-outline", 24)),
 	  displayInBrowserSourceCheckBox(new SwitchWidget(obs_module_text("Settings.Checkbox.DisplayInBrowserSource"), this)),
 	  browserSourceGroupBox(new QGroupBox(obs_module_text("Settings.Group.BrowserSource"), this)),
 	  toggleGroupBox(new QGroupBox(obs_module_text("Settings.Group.DataToggles"), this)),
 	  sendKeyboardCheckBox(new SwitchWidget(obs_module_text("Settings.Checkbox.SendKeyboard"), this)),
 	  sendClicksCheckBox(new SwitchWidget(obs_module_text("Settings.Checkbox.SendClicks"), this)),
 	  sendScrollCheckBox(new SwitchWidget(obs_module_text("Settings.Checkbox.SendScroll"), this)),
-	  sendPositionCheckBox(new SwitchWidget(obs_module_text("Settings.Checkbox.SendPosition"), this))
+	  sendPositionCheckBox(new SwitchWidget(obs_module_text("Settings.Checkbox.SendPosition"), this)),
+	 mouseFpsLabel(new QLabel(obs_module_text("Settings.Label.MouseFps"), this)),
+	  mouseFpsSpinBox(new QSpinBox(this)),
+	  mouseFpsLayout(new QHBoxLayout()),
+	  existingBrowserSourceComboBox(new QComboBox(this)),
+	  connectBrowserSourceBtn(CreateStyledButton(obs_module_text("Settings.Button.ConnectBrowserSource"), "secondary-outline", 24))
 {
 	// Apply StreamUP dialog chrome (frameless window with custom title bar)
 	DialogChrome chrome = ApplyDialogChrome(this, obs_module_text("Settings.Title"));
@@ -72,10 +80,12 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 
 	sceneComboBox->setStyleSheet(GetComboBoxStyle());
 	sourceComboBox->setStyleSheet(GetComboBoxStyle());
-	browserSourceComboBox->setStyleSheet(GetComboBoxStyle());
+	existingBrowserSourceComboBox->setStyleSheet(GetComboBoxStyle());
+	browserSourceNameEdit->setStyleSheet(GetInputStyle());
 
 	timeSpinBox->setStyleSheet(GetSpinBoxStyle());
 	maxHistorySpinBox->setStyleSheet(GetSpinBoxStyle());
+	mouseFpsSpinBox->setStyleSheet(GetSpinBoxStyle());
 
 	prefixLineEdit->setStyleSheet(GetInputStyle());
 	suffixLineEdit->setStyleSheet(GetInputStyle());
@@ -91,6 +101,7 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	whitelistLabel->setStyleSheet(GetLabelStyle());
 	separatorLabel->setStyleSheet(GetLabelStyle());
 	maxHistoryLabel->setStyleSheet(GetLabelStyle());
+	mouseFpsLabel->setStyleSheet(GetLabelStyle());
 
 	// Configure tooltips and accessibility
 	sceneComboBox->setToolTip(obs_module_text("Settings.Tooltip.Scene"));
@@ -145,12 +156,19 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	sendScrollCheckBox->setChecked(true);
 	sendPositionCheckBox->setChecked(false);
 
+	// Configure mouseFpsSpinBox
+	mouseFpsSpinBox->setToolTip(obs_module_text("Settings.Tooltip.MouseFps"));
+	mouseFpsSpinBox->setRange(1, 120);
+	mouseFpsSpinBox->setSingleStep(1);
+	mouseFpsSpinBox->setValue(50);
+
 	// Configure timeSpinBox
 	timeSpinBox->setRange(100, 10000);
 	timeSpinBox->setSingleStep(1);
 
 	// Populate sceneComboBox
 	PopulateSceneComboBox();
+	PopulateBrowserSourceComboBox();
 
 	// Add widgets to layouts
 	sceneLayout->addWidget(sceneLabel);
@@ -180,10 +198,27 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	// Create and configure browserSourceGroupBox layout
 	QVBoxLayout *browserSourceLayout = new QVBoxLayout();
 	QHBoxLayout *browserInnerLayout = new QHBoxLayout();
-	browserInnerLayout->addWidget(new QLabel(obs_module_text("Settings.Label.BrowserSource"), this));
-	browserInnerLayout->addWidget(browserSourceComboBox);
+	browserInnerLayout->addWidget(new QLabel(obs_module_text("Settings.Label.BrowserSourceName"), this));
+	browserInnerLayout->addWidget(browserSourceNameEdit);
 	browserSourceLayout->addLayout(browserInnerLayout);
+	browserSourceLayout->addWidget(addBrowserSourceBtn);
+
+	browserSourceLayout->addSpacing(10);
+
+	QHBoxLayout *existingInnerLayout = new QHBoxLayout();
+	existingInnerLayout->addWidget(new QLabel(obs_module_text("Settings.Label.SelectBrowserSource"), this));
+	existingInnerLayout->addWidget(existingBrowserSourceComboBox);
+	browserSourceLayout->addLayout(existingInnerLayout);
+	browserSourceLayout->addWidget(connectBrowserSourceBtn);
+
 	browserSourceGroupBox->setLayout(browserSourceLayout);
+
+	// Tooltips for browser source settings
+	browserSourceNameEdit->setPlaceholderText("StreamUP Hotkey Overlay");
+	browserSourceNameEdit->setToolTip(obs_module_text("Settings.Tooltip.BrowserSource"));
+	addBrowserSourceBtn->setToolTip(obs_module_text("Settings.Tooltip.AddBrowserSource"));
+	existingBrowserSourceComboBox->setToolTip(obs_module_text("Settings.Tooltip.SelectBrowserSource"));
+	connectBrowserSourceBtn->setToolTip(obs_module_text("Settings.Tooltip.ConnectBrowserSource"));
 
 	// Create and configure toggleGroupBox layout
 	QVBoxLayout *toggleLayout = new QVBoxLayout();
@@ -191,6 +226,11 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	toggleLayout->addWidget(sendClicksCheckBox);
 	toggleLayout->addWidget(sendScrollCheckBox);
 	toggleLayout->addWidget(sendPositionCheckBox);
+
+	mouseFpsLayout->addWidget(mouseFpsLabel);
+	mouseFpsLayout->addWidget(mouseFpsSpinBox);
+	toggleLayout->addLayout(mouseFpsLayout);
+
 	toggleGroupBox->setLayout(toggleLayout);
 
 	// Create and configure singleKeyGroupBox layout
@@ -290,7 +330,9 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 	setTabOrder(sceneComboBox, sourceComboBox);
 	setTabOrder(sourceComboBox, prefixLineEdit);
 	setTabOrder(prefixLineEdit, suffixLineEdit);
-	setTabOrder(suffixLineEdit, applyButton);
+	setTabOrder(suffixLineEdit, browserSourceNameEdit);
+	setTabOrder(browserSourceNameEdit, addBrowserSourceBtn);
+	setTabOrder(addBrowserSourceBtn, applyButton);
 	setTabOrder(applyButton, closeButton);
 
 	// Connect signals to slots
@@ -301,6 +343,7 @@ StreamupHotkeyDisplaySettings::StreamupHotkeyDisplaySettings(HotkeyDisplayDock *
 		&StreamupHotkeyDisplaySettings::onDisplayInTextSourceToggled);
 	connect(displayInBrowserSourceCheckBox->switchBtn, &SwitchButton::toggled, this,
 		&StreamupHotkeyDisplaySettings::onDisplayInBrowserSourceToggled);
+	connect(addBrowserSourceBtn, &QPushButton::clicked, this, &StreamupHotkeyDisplaySettings::onAddBrowserSource);
 
 	// Load current settings
 	obs_data_t *settings = SaveLoadSettingsCallback(nullptr, false);
@@ -325,14 +368,13 @@ void StreamupHotkeyDisplaySettings::LoadSettings(obs_data_t *settings)
 	displayInBrowserSource = obs_data_get_bool(settings, "displayInBrowserSource");
 	displayInBrowserSourceCheckBox->setChecked(displayInBrowserSource);
 
-	browserSource = QString::fromUtf8(obs_data_get_string(settings, "browserSource"));
-	browserSourceComboBox->setCurrentText(browserSource);
-
 	// New settings
 	QString prefix = QString::fromUtf8(obs_data_get_string(settings, "prefix"));
 	prefixLineEdit->setText(prefix);
 	QString suffix = QString::fromUtf8(obs_data_get_string(settings, "suffix"));
 	suffixLineEdit->setText(suffix);
+	QString browserName = QString::fromUtf8(obs_data_get_string(settings, "browserSourceName"));
+	browserSourceNameEdit->setText(browserName);
 
 	// Single key capture settings
 	captureNumpad = obs_data_get_bool(settings, "captureNumpad");
@@ -353,6 +395,10 @@ void StreamupHotkeyDisplaySettings::LoadSettings(obs_data_t *settings)
 	sendClicksCheckBox->setChecked(obs_data_get_bool(settings, "sendClicks"));
 	sendScrollCheckBox->setChecked(obs_data_get_bool(settings, "sendScroll"));
 	sendPositionCheckBox->setChecked(obs_data_get_bool(settings, "sendPosition"));
+
+	// Mouse FPS setting
+	int fps = obs_data_get_int(settings, "mouseFps");
+	mouseFpsSpinBox->setValue(fps > 0 ? fps : 50);
 
 	// Logging settings
 	enableLogging = obs_data_get_bool(settings, "enableLogging");
@@ -378,7 +424,7 @@ void StreamupHotkeyDisplaySettings::SaveSettings()
 	obs_data_set_int(settings, "onScreenTime", timeSpinBox->value());
 	obs_data_set_bool(settings, "displayInTextSource", displayInTextSourceCheckBox->isChecked());
 	obs_data_set_bool(settings, "displayInBrowserSource", displayInBrowserSourceCheckBox->isChecked());
-	obs_data_set_string(settings, "browserSource", browserSourceComboBox->currentText().toUtf8().constData());
+	obs_data_set_string(settings, "browserSourceName", browserSourceNameEdit->text().toUtf8().constData());
 
 	// New settings
 	obs_data_set_string(settings, "prefix", prefixLineEdit->text().toUtf8().constData());
@@ -397,6 +443,7 @@ void StreamupHotkeyDisplaySettings::SaveSettings()
 	obs_data_set_bool(settings, "sendClicks", sendClicksCheckBox->isChecked());
 	obs_data_set_bool(settings, "sendScroll", sendScrollCheckBox->isChecked());
 	obs_data_set_bool(settings, "sendPosition", sendPositionCheckBox->isChecked());
+	obs_data_set_int(settings, "mouseFps", mouseFpsSpinBox->value());
 
 	// Logging settings
 	obs_data_set_bool(settings, "enableLogging", enableLoggingCheckBox->isChecked());
@@ -418,7 +465,6 @@ void StreamupHotkeyDisplaySettings::applySettings()
 {
 	sceneName = sceneComboBox->currentText();
 	textSource = sourceComboBox->currentText();
-	browserSource = browserSourceComboBox->currentText();
 	onScreenTime = timeSpinBox->value();
 	displayInTextSource = displayInTextSourceCheckBox->isChecked();
 	displayInBrowserSource = displayInBrowserSourceCheckBox->isChecked();
@@ -446,7 +492,6 @@ void StreamupHotkeyDisplaySettings::applySettings()
 		hotkeyDisplayDock->setSuffix(newSuffix);
 		hotkeyDisplayDock->setDisplayInTextSource(displayInTextSource);
 		hotkeyDisplayDock->setDisplayInBrowserSource(displayInBrowserSource);
-		hotkeyDisplayDock->setBrowserSource(browserSource);
 		hotkeyDisplayDock->setMaxHistory(maxHistorySpinBox->value());
 	}
 
@@ -525,27 +570,9 @@ void StreamupHotkeyDisplaySettings::PopulateSourceComboBox(const QString &sceneN
 		sourceComboBox->addItem(StyleConstants::NO_TEXT_SOURCE);
 	}
 
-	// Also populate Browser Source box
-	browserSourceComboBox->clear();
-	obs_scene_enum_items(
-		sceneAsScene,
-		[](obs_scene_t *, obs_sceneitem_t *item, void *param) {
-			StreamupHotkeyDisplaySettings *settingsDialog = (StreamupHotkeyDisplaySettings *)param;
-			obs_source_t *source = obs_sceneitem_get_source(item);
-			const char *sourceId = obs_source_get_id(source);
-			if (strcmp(sourceId, "browser_source") == 0) {
-				const char *name = obs_source_get_name(source);
-				settingsDialog->browserSourceComboBox->addItem(QString::fromUtf8(name));
-			}
-			return true;
-		},
-		this);
-
-	if (browserSourceComboBox->count() == 0) {
-		browserSourceComboBox->addItem(StyleConstants::NO_SOURCE);
+	if (sourceComboBox->count() == 0) {
+		sourceComboBox->addItem(StyleConstants::NO_TEXT_SOURCE);
 	}
-
-	obs_source_release(scene);
 }
 
 void StreamupHotkeyDisplaySettings::onDisplayInBrowserSourceToggled(bool checked)
@@ -558,4 +585,141 @@ void StreamupHotkeyDisplaySettings::onDisplayInTextSourceToggled(bool checked)
 {
 	textSourceGroupBox->setVisible(checked);
 	adjustSize();
+}
+
+void StreamupHotkeyDisplaySettings::onAddBrowserSource()
+{
+	QString name = browserSourceNameEdit->text().trimmed();
+	if (name.isEmpty()) {
+		name = "StreamUP Hotkey Overlay";
+	}
+
+	obs_source_t *currentSceneSource = obs_frontend_get_current_scene();
+	if (!currentSceneSource) {
+		return;
+	}
+
+	obs_scene_t *scene = obs_scene_from_source(currentSceneSource);
+	if (!scene) {
+		obs_source_release(currentSceneSource);
+		return;
+	}
+
+	// Create settings for browser source
+	obs_data_t *settings = obs_data_create();
+
+	// Get WebSocket details
+	int port = 4455;
+	std::string password = "";
+	if (hotkeyDisplayDock) {
+		hotkeyDisplayDock->GetWebSocketDetails(port, password);
+	}
+
+	char *overlayPath = obs_module_file("hotkey-overlay.html");
+	if (overlayPath) {
+		QString url = QString("file:///%1").arg(QString::fromUtf8(overlayPath).replace("\\", "/"));
+		url += QString("?ip=127.0.0.1&port=%1&pwd=%2").arg(port).arg(QString::fromStdString(password));
+
+		obs_data_set_string(settings, "url", url.toUtf8().constData());
+		obs_data_set_bool(settings, "is_local_file", false);
+		obs_data_set_int(settings, "width", 1920);
+		obs_data_set_int(settings, "height", 1080);
+
+		obs_source_t *source = obs_source_create("browser_source", name.toUtf8().constData(), settings, nullptr);
+		if (source) {
+			obs_sceneitem_t *item = obs_scene_add(scene, source);
+			if (item) {
+				// Successfully added
+				blog(LOG_INFO, "[StreamUP Hotkey Display] Added browser source '%s' to active scene",
+				     name.toUtf8().constData());
+			}
+			obs_source_release(source);
+		}
+		bfree(overlayPath);
+	}
+
+	obs_data_release(settings);
+	obs_source_release(currentSceneSource);
+}
+
+void StreamupHotkeyDisplaySettings::PopulateBrowserSourceComboBox()
+{
+	existingBrowserSourceComboBox->clear();
+
+	auto enum_proc = [](void *data, obs_source_t *source) {
+		QComboBox *comboBox = static_cast<QComboBox *>(data);
+		const char *id = obs_source_get_id(source);
+		if (strcmp(id, "browser_source") == 0) {
+			const char *name = obs_source_get_name(source);
+			comboBox->addItem(name);
+		}
+		return true;
+	};
+
+	obs_enum_sources(enum_proc, existingBrowserSourceComboBox);
+
+	if (existingBrowserSourceComboBox->count() == 0) {
+		existingBrowserSourceComboBox->addItem("No Browser Sources Found");
+		connectBrowserSourceBtn->setEnabled(false);
+	} else {
+		connectBrowserSourceBtn->setEnabled(true);
+	}
+}
+
+void StreamupHotkeyDisplaySettings::onConnectBrowserSource()
+{
+	QString name = existingBrowserSourceComboBox->currentText();
+	
+	// Sanity check for placeholder
+	if (name.isEmpty() || name == "No Browser Sources Found") {
+		blog(LOG_WARNING, "[StreamUP Hotkey Display] No valid browser source selected");
+		return;
+	}
+
+	obs_source_t *source = obs_get_source_by_name(name.toUtf8().constData());
+	if (!source) {
+		blog(LOG_ERROR, "[StreamUP Hotkey Display] Failed to find source by name: %s", name.toUtf8().constData());
+		return;
+	}
+
+	obs_data_t *settings = obs_source_get_settings(source);
+	if (settings) {
+		const char *url_str = obs_data_get_string(settings, "url");
+		QUrl url(url_str);
+		
+		blog(LOG_INFO, "[StreamUP Hotkey Display] Connecting source '%s'. Old URL: %s", 
+		     name.toUtf8().constData(), url_str);
+
+		QUrlQuery query(url.query());
+
+		// Get WebSocket details
+		int port = 4455;
+		std::string password = "";
+		if (hotkeyDisplayDock) {
+			hotkeyDisplayDock->GetWebSocketDetails(port, password);
+		}
+
+		// Update query parameters
+		query.removeAllQueryItems("ip");
+		query.removeAllQueryItems("port");
+		query.removeAllQueryItems("pwd");
+		query.addQueryItem("ip", "127.0.0.1");
+		query.addQueryItem("port", QString::number(port));
+		query.addQueryItem("pwd", QString::fromStdString(password));
+
+		url.setQuery(query);
+		
+		// CRITICAL: Disable "is_local_file" so the URL is actually used by the browser source
+		obs_data_set_bool(settings, "is_local_file", false);
+		obs_data_set_string(settings, "url", url.toString().toUtf8().constData());
+		
+		obs_source_update(source, settings);
+		
+		blog(LOG_INFO, "[StreamUP Hotkey Display] New URL: %s", url.toString().toUtf8().constData());
+		blog(LOG_INFO, "[StreamUP Hotkey Display] Successfully updated WebSocket parameters and disabled 'Local File' for source '%s'", 
+		     name.toUtf8().constData());
+
+		obs_data_release(settings);
+	}
+	obs_source_release(source);
 }

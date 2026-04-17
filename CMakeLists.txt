@@ -71,6 +71,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 
 if(APPLE)
+  find_library(CARBON_FRAMEWORK Carbon)
+  find_library(APP_SERVICES_FRAMEWORK ApplicationServices)
+  target_link_libraries(${PROJECT_NAME} PRIVATE ${CARBON_FRAMEWORK} ${APP_SERVICES_FRAMEWORK})
+
   set_target_properties(${PROJECT_NAME} PROPERTIES
     XCODE_ATTRIBUTE_FRAMEWORK_SEARCH_PATHS "/Users/jonwood/Github_local_dev/obs-streamup-hotkey-display-main/build_macos/stubs"
     BUILD_WITH_INSTALL_RPATH TRUE

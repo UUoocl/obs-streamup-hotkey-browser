@@ -62,7 +62,9 @@ std::unordered_set<int> modifierKeys = {VK_CONTROL, VK_LCONTROL, VK_RCONTROL, VK
 					VK_SHIFT,   VK_LSHIFT,   VK_RSHIFT,   VK_LWIN, VK_RWIN};
 
 std::unordered_set<int> singleKeys = {VK_INSERT, VK_DELETE, VK_HOME, VK_END, VK_PRIOR, VK_NEXT, VK_F1,  VK_F2,  VK_F3,
-				      VK_F4,     VK_F5,     VK_F6,   VK_F7,  VK_F8,    VK_F9,   VK_F10, VK_F11, VK_F12};
+				      VK_F4,     VK_F5,     VK_F6,   VK_F7,  VK_F8,    VK_F9,   VK_F10, VK_F11, VK_F12,
+				      VK_F13,    VK_F14,    VK_F15,  VK_F16, VK_F17,   VK_F18,  VK_F19, VK_F20, VK_F21,
+				      VK_F22,    VK_F23,    VK_F24};
 
 // Additional key categories for single key capture
 std::unordered_set<int> numpadKeys = {VK_NUMPAD0, VK_NUMPAD1, VK_NUMPAD2, VK_NUMPAD3, VK_NUMPAD4,
@@ -88,7 +90,10 @@ std::unordered_set<int> singleKeys = {
 	kVK_ANSI_Keypad0, kVK_ANSI_Keypad1, kVK_ANSI_Keypad2, kVK_ANSI_Keypad3, kVK_ANSI_Keypad4,     kVK_ANSI_Keypad5,
 	kVK_ANSI_Keypad6, kVK_ANSI_Keypad7, kVK_ANSI_Keypad8, kVK_ANSI_Keypad9, kVK_ANSI_KeypadClear, kVK_ANSI_KeypadEnter,
 	kVK_Escape,       kVK_Delete,       kVK_Home,         kVK_End,          kVK_PageUp,           kVK_PageDown,
-	kVK_Return};
+	kVK_Return,       kVK_F1,           kVK_F2,           kVK_F3,           kVK_F4,               kVK_F5,
+	kVK_F6,           kVK_F7,           kVK_F8,           kVK_F9,           kVK_F10,              kVK_F11,
+	kVK_F12,          kVK_F13,          kVK_F14,          kVK_F15,          kVK_F16,              kVK_F17,
+	kVK_F18,          kVK_F19,          kVK_F20};
 
 // Additional key categories for single key capture
 std::unordered_set<int> numpadKeys = {kVK_ANSI_Keypad0,     kVK_ANSI_Keypad1,    kVK_ANSI_Keypad2,
@@ -134,9 +139,10 @@ static const std::unordered_map<char, int> macDigitKeycodes = {
 std::unordered_set<int> modifierKeys = {XK_Control_L, XK_Control_R, XK_Super_L, XK_Super_R,
 					XK_Alt_L,     XK_Alt_R,     XK_Shift_L, XK_Shift_R};
 
-std::unordered_set<int> singleKeys = {XK_Insert, XK_Delete, XK_Home, XK_End, XK_Page_Up, XK_Page_Down, XK_F1,
-				      XK_F2,     XK_F3,     XK_F4,   XK_F5,  XK_F6,      XK_F7,        XK_F8,
-				      XK_F9,     XK_F10,    XK_F11,  XK_F12, XK_Return};
+std::unordered_set<int> singleKeys = {XK_Insert,  XK_Delete,  XK_Home,    XK_End,    XK_Page_Up, XK_Page_Down, XK_F1,      XK_F2,
+				      XK_F3,      XK_F4,      XK_F5,      XK_F6,     XK_F7,      XK_F8,        XK_F9,      XK_F10,
+				      XK_F11,     XK_F12,     XK_F13,     XK_F14,    XK_F15,     XK_F16,       XK_F17,     XK_F18,
+				      XK_F19,     XK_F20,     XK_F21,     XK_F22,    XK_F23,     XK_F24,       XK_Return};
 
 // Additional key categories for single key capture
 std::unordered_set<int> numpadKeys = {XK_KP_0,        XK_KP_1,      XK_KP_2,       XK_KP_3,
@@ -196,8 +202,9 @@ static bool sendClicks = true;
 static bool sendScroll = true;
 static bool sendPosition = false;
 
-// Mouse movement threshold (ms)
-static const uint64_t moveThrottleMs = 20; // 50Hz
+// Mouse movement threshold (ms) - updated via mouseFps setting
+static std::atomic<uint64_t> moveThrottleMs{20}; // Default 50Hz (20ms)
+static uint64_t mouseFps = 50;
 
 // Key name lookup tables for performance
 #ifdef _WIN32
@@ -216,7 +223,11 @@ static const std::unordered_map<int, const char *> keyNameMap = {
 	{VK_F3, "F3"},               {VK_F4, "F4"},                {VK_F5, "F5"},
 	{VK_F6, "F6"},               {VK_F7, "F7"},                {VK_F8, "F8"},
 	{VK_F9, "F9"},               {VK_F10, "F10"},              {VK_F11, "F11"},
-	{VK_F12, "F12"}};
+	{VK_F12, "F12"},             {VK_F13, "F13"},              {VK_F14, "F14"},
+	{VK_F15, "F15"},             {VK_F16, "F16"},              {VK_F17, "F17"},
+	{VK_F18, "F18"},             {VK_F19, "F19"},              {VK_F20, "F20"},
+	{VK_F21, "F21"},             {VK_F22, "F22"},              {VK_F23, "F23"},
+	{VK_F24, "F24"}};
 #endif
 
 #ifdef __APPLE__
@@ -225,14 +236,23 @@ static const std::unordered_map<int, const char *> keyNameMap = {
 	{kVK_RightCommand, "Cmd"},      {kVK_Option, "Alt"},          {kVK_RightOption, "Alt"},
 	{kVK_Shift, "Shift"},           {kVK_RightShift, "Shift"},    {kVK_ANSI_KeypadEnter, "Enter"},
 	{kVK_Return, "Enter"},          {kVK_Space, "Space"},         {kVK_Delete, "Backspace"},
-	{kVK_Tab, "Tab"},               {kVK_Escape, "Escape"},       {kVK_PageUp, "Page Up"},
-	{kVK_PageDown, "Page Down"},    {kVK_End, "End"},             {kVK_Home, "Home"},
-	{kVK_LeftArrow, "Left Arrow"},  {kVK_UpArrow, "Up Arrow"},    {kVK_RightArrow, "Right Arrow"},
-	{kVK_DownArrow, "Down Arrow"},  {kVK_Help, "Insert"},         {kVK_F1, "F1"},
-	{kVK_F2, "F2"},                 {kVK_F3, "F3"},               {kVK_F4, "F4"},
-	{kVK_F5, "F5"},                 {kVK_F6, "F6"},               {kVK_F7, "F7"},
-	{kVK_F8, "F8"},                 {kVK_F9, "F9"},               {kVK_F10, "F10"},
-	{kVK_F11, "F11"},               {kVK_F12, "F12"}};
+	{kVK_ForwardDelete, "Delete"},  {kVK_Tab, "Tab"},               {kVK_Escape, "Escape"},
+	{kVK_PageUp, "Page Up"},        {kVK_PageDown, "Page Down"},    {kVK_End, "End"},
+	{kVK_Home, "Home"},             {kVK_LeftArrow, "Left Arrow"},  {kVK_UpArrow, "Up Arrow"},
+	{kVK_RightArrow, "Right Arrow"}, {kVK_DownArrow, "Down Arrow"}, {kVK_Help, "Insert"},
+	{kVK_ANSI_Keypad0, "Numpad 0"}, {kVK_ANSI_Keypad1, "Numpad 1"}, {kVK_ANSI_Keypad2, "Numpad 2"},
+	{kVK_ANSI_Keypad3, "Numpad 3"}, {kVK_ANSI_Keypad4, "Numpad 4"}, {kVK_ANSI_Keypad5, "Numpad 5"},
+	{kVK_ANSI_Keypad6, "Numpad 6"}, {kVK_ANSI_Keypad7, "Numpad 7"}, {kVK_ANSI_Keypad8, "Numpad 8"},
+	{kVK_ANSI_Keypad9, "Numpad 9"}, {kVK_ANSI_KeypadDecimal, "Numpad ."}, {kVK_ANSI_KeypadMultiply, "Numpad *"},
+	{kVK_ANSI_KeypadPlus, "Numpad +"}, {kVK_ANSI_KeypadClear, "Num Lock"}, {kVK_ANSI_KeypadDivide, "Numpad /"},
+	{kVK_ANSI_KeypadMinus, "Numpad -"}, {kVK_ANSI_KeypadEquals, "Numpad ="},
+	{kVK_F1, "F1"},                 {kVK_F2, "F2"},                 {kVK_F3, "F3"},
+	{kVK_F4, "F4"},                 {kVK_F5, "F5"},                 {kVK_F6, "F6"},
+	{kVK_F7, "F7"},                 {kVK_F8, "F8"},                 {kVK_F9, "F9"},
+	{kVK_F10, "F10"},               {kVK_F11, "F11"},               {kVK_F12, "F12"},
+	{kVK_F13, "F13"},               {kVK_F14, "F14"},               {kVK_F15, "F15"},
+	{kVK_F16, "F16"},               {kVK_F17, "F17"},               {kVK_F18, "F18"},
+	{kVK_F19, "F19"},               {kVK_F20, "F20"}};
 #endif
 
 #ifdef __linux__
@@ -248,7 +268,11 @@ static const std::unordered_map<int, const char *> keyNameMap = {
 	{XK_F2, "F2"},             {XK_F3, "F3"},            {XK_F4, "F4"},
 	{XK_F5, "F5"},             {XK_F6, "F6"},            {XK_F7, "F7"},
 	{XK_F8, "F8"},             {XK_F9, "F9"},            {XK_F10, "F10"},
-	{XK_F11, "F11"},           {XK_F12, "F12"}};
+	{XK_F11, "F11"},           {XK_F12, "F12"},          {XK_F13, "F13"},
+	{XK_F14, "F14"},           {XK_F15, "F15"},          {XK_F16, "F16"},
+	{XK_F17, "F17"},           {XK_F18, "F18"},          {XK_F19, "F19"},
+	{XK_F20, "F20"},           {XK_F21, "F21"},          {XK_F22, "F22"},
+	{XK_F23, "F23"},           {XK_F24, "F24"}};
 #endif
 
 // Lock-free variant — caller must hold keyStateMutex
@@ -276,6 +300,40 @@ std::string getKeyName(int vkCode)
 	char keyName[128];
 	if (GetKeyNameTextA(scanCode << 16, keyName, sizeof(keyName)) > 0) {
 		return std::string(keyName);
+	}
+#endif
+
+#ifdef __APPLE__
+	TISInputSourceRef currentKeyboard = TISCopyCurrentKeyboardInputSource();
+	if (currentKeyboard) {
+		CFDataRef layoutData = (CFDataRef)TISGetInputSourceProperty(currentKeyboard, kTISPropertyUnicodeKeyLayoutData);
+		if (layoutData) {
+			const UCKeyboardLayout *keyboardLayout = (const UCKeyboardLayout *)CFDataGetBytePtr(layoutData);
+			UInt32 deadKeyState = 0;
+			UniChar chars[4];
+			UniCharCount actualLength;
+
+			OSStatus status = UCKeyTranslate(keyboardLayout, vkCode, kUCKeyActionDisplay, 0, LMGetKbdType(),
+							 kUCKeyTranslateNoDeadKeysBit, &deadKeyState,
+							 sizeof(chars) / sizeof(chars[0]), &actualLength, chars);
+
+			if (status == noErr && actualLength > 0) {
+				CFStringRef cfString = CFStringCreateWithCharacters(kCFAllocatorDefault, chars, actualLength);
+				char buffer[64];
+				if (CFStringGetCString(cfString, buffer, sizeof(buffer), kCFStringEncodingUTF8)) {
+					std::string result(buffer);
+					// Capitalize single letters for better display
+					if (result.length() == 1 && result[0] >= 'a' && result[0] <= 'z') {
+						result[0] = result[0] - ('a' - 'A');
+					}
+					CFRelease(cfString);
+					CFRelease(currentKeyboard);
+					return result;
+				}
+				CFRelease(cfString);
+			}
+		}
+		CFRelease(currentKeyboard);
 	}
 #endif
 
@@ -630,6 +688,7 @@ void startMacOSKeyboardHook()
 
 	// Create event tap for keyboard AND mouse events
 	CGEventMask eventMask = CGEventMaskBit(kCGEventKeyDown) | CGEventMaskBit(kCGEventKeyUp) |
+				CGEventMaskBit(kCGEventFlagsChanged) |
 				CGEventMaskBit(kCGEventLeftMouseDown) | CGEventMaskBit(kCGEventRightMouseDown) |
 				CGEventMaskBit(kCGEventOtherMouseDown) | CGEventMaskBit(kCGEventScrollWheel) |
 				CGEventMaskBit(kCGEventMouseMoved) | CGEventMaskBit(kCGEventLeftMouseDragged) |
@@ -741,6 +800,32 @@ CGEventRef CGEventCallback(CGEventTapProxy proxy, CGEventType type, CGEventRef e
 					Q_ARG(QString, QString::fromStdString(keyCombination)));
 			}
 			emitWebSocketEvent(keyCombination);
+		}
+	} else if (type == kCGEventFlagsChanged) {
+		CGKeyCode keyCode = (CGKeyCode)CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
+		CGEventFlags flags = CGEventGetFlags(event);
+		bool isDown = false;
+
+		// Detect if this specific modifier is down using standard bitmasks
+		if (keyCode == kVK_Shift || keyCode == kVK_RightShift)
+			isDown = (flags & kCGEventFlagMaskShift);
+		else if (keyCode == kVK_Control || keyCode == kVK_RightControl)
+			isDown = (flags & kCGEventFlagMaskControl);
+		else if (keyCode == kVK_Option || keyCode == kVK_RightOption)
+			isDown = (flags & kCGEventFlagMaskAlternate);
+		else if (keyCode == kVK_Command || keyCode == kVK_RightCommand)
+			isDown = (flags & kCGEventFlagMaskCommand);
+		else if (keyCode == kVK_Function) // Function key (mostly on laptops)
+			isDown = (flags & kCGEventFlagMaskSecondaryFn);
+
+		std::lock_guard<std::mutex> lock(keyStateMutex);
+		if (isDown) {
+			pressedKeys.insert(keyCode);
+			activeModifiers.insert(keyCode);
+		} else {
+			pressedKeys.erase(keyCode);
+			activeModifiers.erase(keyCode);
+			loggedCombinations.clear(); // Reset to allow re-triggering of the same combo
 		}
 	}
 	// Handle mouse events
@@ -1085,6 +1170,7 @@ static void applySettingsDefaults(obs_data_t *data)
 	obs_data_set_default_bool(data, "enableLogging", false);
 	obs_data_set_default_string(data, "keySeparator", " + ");
 	obs_data_set_default_int(data, "maxHistory", 10);
+	obs_data_set_default_int(data, "mouseFps", 50);
 }
 
 obs_data_t *SaveLoadSettingsCallback(obs_data_t *save_data, bool saving)
@@ -1264,6 +1350,12 @@ void loadSingleKeyCaptureSettings(obs_data_t *settings)
 	// Load separator (default " + ")
 	const char *sep = obs_data_get_string(settings, "keySeparator");
 	keySeparator = (sep && strlen(sep) > 0) ? sep : " + ";
+	
+	// Load Mouse FPS and update throttle
+	mouseFps = obs_data_get_int(settings, "mouseFps");
+	if (mouseFps < 1) mouseFps = 1;
+	if (mouseFps > 120) mouseFps = 120;
+	moveThrottleMs.store(1000 / mouseFps);
 }
 
 void loadDockSettings(HotkeyDisplayDock *dock, obs_data_t *settings)

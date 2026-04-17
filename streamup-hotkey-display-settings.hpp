@@ -24,13 +24,13 @@ public:
 
 	void PopulateSceneComboBox();
 	void PopulateSourceComboBox(const QString &sceneName);
+	void PopulateBrowserSourceComboBox();
 
 	QString sceneName;
 	QString textSource;
 	int onScreenTime;
 	bool displayInTextSource;
 	bool displayInBrowserSource;
-	QString browserSource;
 
 	// Data toggles
 	bool sendKeyboard;
@@ -66,8 +66,16 @@ private:
 	QLineEdit *suffixLineEdit;
 	QComboBox *sceneComboBox;
 	QComboBox *sourceComboBox;
-	QComboBox *browserSourceComboBox;
+	QLineEdit *browserSourceNameEdit;
+	QPushButton *addBrowserSourceBtn;
 	QSpinBox *timeSpinBox;
+	QLabel *mouseFpsLabel;
+	QSpinBox *mouseFpsSpinBox;
+	QHBoxLayout *mouseFpsLayout;
+
+	QComboBox *existingBrowserSourceComboBox;
+	QPushButton *connectBrowserSourceBtn;
+	
 	SwitchWidget *displayInTextSourceCheckBox;
 	SwitchWidget *displayInBrowserSourceCheckBox;
 	QGroupBox *textSourceGroupBox;
@@ -107,4 +115,6 @@ private slots:
 	void onSceneChanged(const QString &sceneName);
 	void onDisplayInTextSourceToggled(bool checked);
 	void onDisplayInBrowserSourceToggled(bool checked);
+	void onAddBrowserSource();
+	void onConnectBrowserSource();
 };
