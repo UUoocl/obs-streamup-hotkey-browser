@@ -6,6 +6,10 @@
 
 The plugin has evolved from a simple text-source display to a high-performance **Internal Event Engine**. By leveraging the native **Browser Source** (CEF) API, events are now emitted directly into the browser's JavaScript environment.
 
+
+https://github.com/user-attachments/assets/770859ee-223b-451b-b5c9-16d666b4fd8b
+
+
 > [!NOTE]
 > The original WebSocket-based architecture is still available in the [**websocket**](https://github.com/Andilippi/obs-streamup-hotkey-display/tree/websocket) branch for users who require remote network distribution.
 
